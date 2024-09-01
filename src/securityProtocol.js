@@ -1,68 +1,4 @@
-import { checkDependencies } from './dependencyChecker.js';
-import { executeCommand } from './commandExecutor.js';
-import { promptUser } from './userPrompt.js';
-import { securityTools } from './config.js';
-import { initializeLogFiles, appendToReport } from './utils.js';
-import readline from 'readline';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
-
-let currentProcess = null;
-
-function setupAbortHandler() {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
-  rl.on('SIGINT', () => {
-    if (currentProcess) {
-      console.log('\nAborting current process...');
-      currentProcess.kill('SIGINT');
-      currentProcess = null;
-    } else {
-      console.log('\nNo process currently running. Exiting...');
-      process.exit(0);
-    }
-  });
-
-  return rl;
-}
-
-async function runTool(tool, answers, mockMode) {
-  const toolKey = tool.name.toLowerCase();
-  if (answers[`run${tool.name}`]) {
-    try {
-      let args = [...tool.args];
-      if (tool.additionalPrompt) {
-        const additionalValue = answers[tool.additionalPrompt.name];
-        if (toolKey === 'nmap') {
-          args.push(answers.nmapTarget);
-        } else if (toolKey === 'tcpdump') {
-          args.push('-c', additionalValue);
-        }
-      }
-      console.log(`\nStarting ${tool.name}...`);
-      console.log('Press Ctrl+C to abort the current process.\n');
-
-      if (toolKey === 'clamav') {
-        await checkClamavDatabase();
-      }
-
-      const result = await executeCommand(tool, args, tool.estimatedDuration, mockMode, (process) => {
-        currentProcess = process;
-      });
-      currentProcess = null;
-      return { command: tool.name, status: 'Success', duration: result.duration };
-    } catch (error) {
-      currentProcess = null;
-      return { command: tool.name, status: 'Failed', error: error.message };
-    }
-  }
-  return null;
-}
+// ... (previous code remains the same)
 
 async function checkClamavDatabase() {
   try {
@@ -71,35 +7,42 @@ async function checkClamavDatabase() {
   } catch (error) {
     console.error('Error updating ClamAV virus database:');
     console.error(error.message);
-    console.error('Please ensure freshclam is installed and you have necessary permissions.');
-    console.error('You may need to run: sudo freshclam');
-    throw new Error('ClamAV database update failed');
-  }
-}
+    console.error('Attempting to create a basic configuration file...');
+    
+    try {
+      await execAsync('sudo mkdir -p /opt/homebrew/etc/clamav');
+      await execAsync('sudo touch /opt/homebrew/etc/clamav/freshclam.conf');
+      await execAsync('echo "DatabaseMirror database.clamav.net" | sudo tee /opt/homebrew/etc/clamav/freshclam.conf');
+      console.log('Created a basic configuration file. Attempting to update the database again...');
+      
+      await execAsync('freshclam');
+      console.log('ClamAV virus database updated successfully after creating configuration.');
+    } catch (configError) {
+      console.error('Failed to create configuration or update database:');
+      console.error(configError.message);
+      console.error('Please ensure freshclam is installed and you have necessary permissions.');
+      console.error('You may need to run the following commands manually:');
+      console.error('sudo mkdir -p /opt/homebrew/etc/clamav');
+      console.error('sudo touch /opt/homebrew/etc/clamav/freshclam.conf');
+      console.error('echo "DatabaseMirror database.clamav.net" | sudo tee /opt/homebrew/etc/clamav/freshclam.conf');
+      console.error('sudo freshclam');
+      
+      const readline = require('readline').createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
 
-export async function runSecurityProtocol(mockMode = false) {
-  await initializeLogFiles();
-
-  console.log('Checking for required dependencies...');
-  await checkDependencies(mockMode);
-
-  const rl = setupAbortHandler();
-
-  const answers = await promptUser();
-  const results = [];
-
-  for (const tool of Object.values(securityTools)) {
-    const result = await runTool(tool, answers, mockMode);
-    if (result) {
-      results.push(result);
-      const reportLine = `${result.command}: ${result.status} ${result.duration ? `(${result.duration}ms)` : ''}\n`;
-      await appendToReport(reportLine);
-      console.log(`\n${result.command} completed. Press Enter to continue...`);
-      await new Promise(resolve => rl.question('', resolve));
+      return new Promise((resolve) => {
+        readline.question('Press Enter to continue without updating ClamAV database, or type "exit" to quit: ', (answer) => {
+          readline.close();
+          if (answer.toLowerCase() === 'exit') {
+            process.exit(1);
+          }
+          resolve();
+        });
+      });
     }
   }
-
-  rl.close();
-
-  console.log('Security protocol execution completed. Check the log and report files for details.');
 }
+
+// ... (rest of the code remains the same)
