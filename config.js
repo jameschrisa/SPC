@@ -1,0 +1,47 @@
+export const securityTools = {
+  nmap: {
+    name: 'Nmap',
+    command: 'nmap',
+    args: ['-sV', '-O'],
+    message: 'Do you want to run an Nmap scan for vulnerability assessment?',
+    additionalPrompt: {
+      type: 'input',
+      name: 'nmapTarget',
+      message: 'Enter the IP range for Nmap scan (e.g., 192.168.1.0/24):',
+    },
+    checkCommand: 'nmap --version',
+    explanation: 'Nmap is scanning the specified IP range, probing for open ports, identifying services running on those ports, and attempting to determine the operating systems of the target devices.',
+  },
+  clamav: {
+    name: 'ClamAV',
+    command: 'clamscan',
+    args: ['-r', '/'],
+    message: 'Do you want to run ClamAV for malware scanning?',
+    checkCommand: 'clamscan --version',
+    explanation: 'ClamAV is performing a recursive scan of the entire file system, checking files against a database of known malware signatures. It\'s looking for viruses, trojans, malware, and other malicious content.',
+  },
+  lynis: {
+    name: 'Lynis',
+    command: 'lynis',
+    args: ['audit', 'system'],
+    message: 'Do you want to run Lynis for security auditing?',
+    checkCommand: 'lynis --version',
+    explanation: 'Lynis is performing a security audit of your system. It\'s checking for misconfigurations, outdated software versions, and other potential security issues.',
+  },
+  tcpdump: {
+    name: 'tcpdump',
+    command: 'sudo',
+    args: ['tcpdump', '-i', 'any', '-c', '100'],
+    message: 'Do you want to capture network traffic with tcpdump?',
+    checkCommand: 'tcpdump --version',
+    explanation: 'tcpdump is capturing and analyzing network packets in real-time. It\'s recording detailed information about network traffic, including source and destination addresses, protocols used, and packet contents.',
+  },
+  brewaudit: {
+    name: 'brew audit',
+    command: 'brew',
+    args: ['audit', '--strict'],
+    message: 'Do you want to audit your Homebrew packages for vulnerabilities?',
+    checkCommand: 'brew --version',
+    explanation: 'Brew audit is checking your installed Homebrew packages for potential security vulnerabilities and other issues.',
+  },
+};
