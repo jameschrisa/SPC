@@ -4,6 +4,10 @@ import { promptUser } from './userPrompt.js';
 import { securityTools } from './config.js';
 import { initializeLogFiles, appendToReport } from './utils.js';
 import readline from 'readline';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 let currentProcess = null;
 
@@ -35,13 +39,18 @@ async function runTool(tool, answers, mockMode) {
       if (tool.additionalPrompt) {
         const additionalValue = answers[tool.additionalPrompt.name];
         if (toolKey === 'nmap') {
-          args.push(additionalValue);
+          args.push(answers.nmapTarget);
         } else if (toolKey === 'tcpdump') {
           args.push('-c', additionalValue);
         }
       }
       console.log(`\nStarting ${tool.name}...`);
       console.log('Press Ctrl+C to abort the current process.\n');
+
+      if (toolKey === 'clamav') {
+        await checkClamavDatabase();
+      }
+
       const result = await executeCommand(tool, args, tool.estimatedDuration, mockMode, (process) => {
         currentProcess = process;
       });
@@ -53,6 +62,19 @@ async function runTool(tool, answers, mockMode) {
     }
   }
   return null;
+}
+
+async function checkClamavDatabase() {
+  try {
+    await execAsync('freshclam');
+    console.log('ClamAV virus database updated successfully.');
+  } catch (error) {
+    console.error('Error updating ClamAV virus database:');
+    console.error(error.message);
+    console.error('Please ensure freshclam is installed and you have necessary permissions.');
+    console.error('You may need to run: sudo freshclam');
+    throw new Error('ClamAV database update failed');
+  }
 }
 
 export async function runSecurityProtocol(mockMode = false) {
