@@ -25,6 +25,10 @@ export async function checkDependencies(mockMode = false) {
     console.error('The following dependencies are missing:');
     missingDependencies.forEach(dep => console.error(`- ${securityTools[dep].name}`));
     console.error('Please install these dependencies before running the security protocol.');
+    console.error('You can install them using Homebrew with the following commands:');
+    console.error('brew install nmap clamav lynis tcpdump');
+    console.error('After installation, you may need to start the ClamAV daemon:');
+    console.error('brew services start clamav');
     console.error('For development purposes, you can run the script in mock mode.');
     process.exit(1);
   }

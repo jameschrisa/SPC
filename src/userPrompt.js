@@ -6,11 +6,12 @@ export async function promptUser() {
     {
       type: 'confirm',
       name: `run${tool.name}`,
-      message: tool.message,
+      message: `${tool.message}\n   ${tool.explanation}\n   Do you want to proceed?`,
       default: true,
     },
     ...(tool.additionalPrompt ? [tool.additionalPrompt] : []),
   ]);
 
+  console.log('\nPlease confirm which security tools you\'d like to run:');
   return inquirer.prompt(questions);
 }
